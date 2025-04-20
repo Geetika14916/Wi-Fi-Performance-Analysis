@@ -77,10 +77,10 @@
     
                 if (data.status) {
                     form.innerHTML = `<button name="action" value="stop" class="stop">Stop Collection</button>`;
-                    msgDiv.innerText = "✅ Collection is running";
+                    msgDiv.innerText = "Collection is running...";
                 } else {
                     form.innerHTML = `<button name="action" value="start" class="start">Start Collection</button>`;
-                    msgDiv.innerText = "⏹️ Collection is stopped";
+                    msgDiv.innerText = "Collection is stopped.";
                 }
             } catch (err) {
                 console.error("Error fetching status:", err);

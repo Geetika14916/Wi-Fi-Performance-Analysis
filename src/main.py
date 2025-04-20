@@ -168,13 +168,17 @@ def get_next_run_no():
         db = get_db_connection()
         wifi_data_col = db["wifi_data"]
 
+        today = datetime.now().strftime("%Y-%m-%d")
         max_run = 0
+
         for doc in wifi_data_col.find():
             key = doc["_id"]
             if isinstance(doc.get(key), list):
                 for entry in doc[key]:
-                    if "run_no" in entry:
-                        max_run = max(max_run, entry["run_no"])
+                    if "run_no" in entry and "timestamp" in entry:
+                        entry_date = entry["timestamp"].split(" ")[0]
+                        if entry_date == today:
+                            max_run = max(max_run, entry["run_no"])
 
         return max_run + 1
     except Exception as e:
