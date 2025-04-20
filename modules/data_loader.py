@@ -3,20 +3,21 @@ import json
 from datetime import datetime
 from .utils import get_pixel_coords
 import os
+from Database.database import get_db_connection
 
 def load_wifi_data():
     try:
-        
-        json_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'wifi_data.json')
-        with open(json_path, 'r') as file:
-            data = json.load(file)
-
+        db = get_db_connection()
+        collection = db["wifi_data"]
         records = []
-        for location, measurements in data.items():
+
+        for doc in collection.find():
+            location = doc["_id"]
+            measurements = doc.get(location, [])
             for measurement in measurements:
                 try:
                     timestamp = datetime.strptime(measurement['timestamp'], '%Y-%m-%d %H:%M:%S')
-                    record = {
+                    records.append({
                         'timestamp': timestamp,
                         'date': timestamp.strftime('%Y-%m-%d'),
                         'hour': timestamp.strftime('%H:00'),
@@ -26,18 +27,18 @@ def load_wifi_data():
                         'latency_ms': measurement['latency_ms'],
                         'jitter_ms': measurement['jitter_ms'],
                         'packet_loss': measurement['packet_loss'],
-                        'rssi': measurement['rssi']
-                    }
-                    records.append(record)
+                        'rssi': measurement['rssi'],
+                        'run_no': measurement['run_no']
+                    })
                 except Exception as e:
                     print(f"⚠️ Skipping bad record: {e}")
                     continue
 
-        df = pd.DataFrame(records)
-        return df
+        return pd.DataFrame(records)
     except Exception as e:
-        print(f"❌ Error loading data: {e}")
+        print(f"❌ Error fetching from DB: {e}")
         return pd.DataFrame()
+
 
 def prepare_heatmap_data(df, selected_param):
     df = df.copy()

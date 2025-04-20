@@ -13,7 +13,16 @@ def create_dash_app(flask_app):
     'sidebar': '#1B2A41',          # muted dark background
     'text': '#1C2B36',             # soft light grey for text
     'primary': '#00BFA6',          # highlight/CTA (green-blue)
-    'secondary': '#FFA000'         # warm contrast (amber)
+    'secondary': '#FFA000',        # warm contrast (amber)
+
+    'download_speed': '#1f77b4',
+    'upload_speed': '#ff7f0e',
+    'latency_ms': '#2ca02c',
+    'jitter_ms': '#d62728',
+    'packet_loss': '#9467bd',
+    'rssi': '#8c564b',
+    # 'text': 'black'
+
 }
 
 
@@ -42,6 +51,14 @@ body {
 h2, h3, h4 {
     font-weight: 600;
     color: #ECEFF1 !important;
+}
+
+.DatePickerSingle input {
+    background-color: #1f2c3e !important;
+    color: white !important;
+    border: none;
+    font-weight: bold;
+    text-align: center;
 }
 
 .graph-container {
