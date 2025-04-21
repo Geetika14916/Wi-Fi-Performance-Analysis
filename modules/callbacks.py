@@ -39,7 +39,7 @@ def register_callbacks(dash_app, colors):
     def render_selected_tab_content(tab):
         """
         Main tab switcher. Dynamically loads the content for the selected tab.
-        Tabs: overview, trends, heatmap, insights
+        Tabs: overview, run_analysis, trends, heatmap, insights
         """
         df = load_wifi_data()
 
@@ -47,68 +47,246 @@ def register_callbacks(dash_app, colors):
             if df.empty:
                 return html.Div("❌ No data available for overview")
 
-            # Get latest data per location
+            # Get latest run for each location
             latest_data = df.sort_values('timestamp').groupby('location').last().reset_index()
+            
+            # Define parameters to show
+            parameters = {
+                'download_speed': {'icon': '📥', 'unit': 'Mbps', 'name': 'Download Speed'},
+                'upload_speed': {'icon': '📤', 'unit': 'Mbps', 'name': 'Upload Speed'},
+                'latency_ms': {'icon': '⏱️', 'unit': 'ms', 'name': 'Latency'},
+                'jitter_ms': {'icon': '📊', 'unit': 'ms', 'name': 'Jitter'},
+                'packet_loss': {'icon': '📉', 'unit': '%', 'name': 'Packet Loss'},
+                'rssi': {'icon': '📶', 'unit': 'dBm', 'name': 'RSSI'}
+            }
 
-            # Prepare dropdown options for location and date-run selection
-            locations = list(latest_data['location'].unique())
+            # Get unique locations for dropdown
+            locations = latest_data['location'].unique()
             location_options = [{'label': loc, 'value': loc} for loc in locations]
 
+            return html.Div([
+                html.H3("📊 Latest Parameters", style={'marginBottom': '20px', 'color': 'white'}),
+                html.Div([
+                    html.Label("Select Location:", style={'color': 'white', 'marginRight': '15px', 'minWidth': '100px'}),
+                    dbc.Button("⬅", id='prev-location-card', 
+                             style={
+                                 'backgroundColor': '#1f2c3e',
+                                 'borderColor': '#1f2c3e',
+                                 'color': 'white',
+                                 'padding': '0.375rem 0.75rem',
+                                 'height': '38px',
+                                 'width': '45px',
+                                 'display': 'flex',
+                                 'alignItems': 'center',
+                                 'justifyContent': 'center',
+                                 'marginRight': '8px',
+                                 'borderRadius': '4px',
+                                 'fontSize': '20px'
+                             }),
+                    dcc.Dropdown(
+                        id='location-selector',
+                        options=location_options,
+                        value=locations[0] if len(locations) > 0 else None,
+                        clearable=False,
+                        style={
+                            'width': '200px',
+                            'backgroundColor': 'white',
+                            'color': 'black',
+                            'border': '1px solid #1f2c3e',
+                            'borderRadius': '4px'
+                        }
+                    ),
+                    dbc.Button("➡", id='next-location-card',
+                             style={
+                                 'backgroundColor': '#1f2c3e',
+                                 'borderColor': '#1f2c3e',
+                                 'color': 'white',
+                                 'padding': '0.375rem 0.75rem',
+                                 'height': '38px',
+                                 'width': '45px',
+                                 'display': 'flex',
+                                 'alignItems': 'center',
+                                 'justifyContent': 'center',
+                                 'marginLeft': '8px',
+                                 'borderRadius': '4px',
+                                 'fontSize': '20px'
+                             }),
+                    dcc.Store(id='location-card-index', data=0)
+                ], style={'marginBottom': '20px', 'display': 'flex', 'alignItems': 'center'}),
+                html.Div(id='parameter-cards', style={'marginTop': '30px'})
+            ], style={'padding': '20px', 'backgroundColor': '#15202b', 'minHeight': '100vh'})
+
+        elif tab == 'run_analysis':
+            if df.empty:
+                return html.Div("❌ No data available for run analysis")
+
+            # Get unique locations for dropdown
+            locations = sorted(df['location'].unique())
+            location_options = [{'label': loc, 'value': loc} for loc in locations]
+
+            # Get unique dates and run numbers
             df['date'] = pd.to_datetime(df['timestamp']).dt.date
             dates = sorted(df['date'].unique())
-            date_options = [{'label': str(date), 'value': str(date)} for date in dates]
-
+            
+            # Get run numbers for the first date
             first_date_data = df[df['date'] == dates[0]]
             first_date_runs = sorted(first_date_data['run_no'].unique())
             run_options = [{'label': f"Run {run}", 'value': str(run)} for run in first_date_runs]
 
             return html.Div([
-                html.H3("📊 Latest Parameters", style={'marginBottom': '20px', 'color': 'white'}),
-
-                # Location selector dropdown
+                html.H3("Run Analysis", style={'marginBottom': '20px', 'color': 'white'}),
                 html.Div([
-                    html.Label("Select Location:", style={'color': 'white', 'marginRight': '10px'}),
-                    dcc.Dropdown(
-                        id='location-selector',
-                        options=location_options,
-                        value=locations[0] if locations else None,
-                        clearable=False,
-                        style={'width': '200px', 'display': 'inline-block', 'marginRight': '20px'}
-                    )
-                ], style={'marginBottom': '20px', 'display': 'flex', 'alignItems': 'center'}),
-
-                html.Div(id='parameter-cards', style={'marginTop': '30px'}),
-                html.Hr(style={'borderColor': 'white', 'margin': '30px 0'}),
-
-                html.H3("Run Analysis", style={'marginTop': '40px', 'marginBottom': '20px', 'color': 'white'}),
-
-                # Date and run selectors
-                html.Div([
+                    # Location Navigation
                     html.Div([
-                        html.Label("Select Date:", style={'color': 'white', 'marginRight': '10px'}),
+                        html.Label("Location:", style={'color': 'white', 'marginRight': '15px', 'minWidth': '100px'}),
+                        dbc.Button("⬅", id='prev-location-plot',
+                                 style={
+                                     'backgroundColor': '#1f2c3e',
+                                     'borderColor': '#1f2c3e',
+                                     'color': 'white',
+                                     'padding': '0.375rem 0.75rem',
+                                     'height': '38px',
+                                     'width': '45px',
+                                     'display': 'flex',
+                                     'alignItems': 'center',
+                                     'justifyContent': 'center',
+                                     'marginRight': '8px',
+                                     'borderRadius': '4px',
+                                     'fontSize': '20px'
+                                 }),
                         dcc.Dropdown(
-                            id='date-selector',
-                            options=date_options,
-                            value=str(dates[0]) if dates else None,
+                            id='location-plot-selector',
+                            options=location_options,
+                            value=locations[0] if len(locations) > 0 else None,
                             clearable=False,
-                            style={'width': '200px', 'display': 'inline-block', 'marginRight': '20px'}
-                        )
+                            style={
+                                'width': '200px',
+                                'backgroundColor': 'white',
+                                'color': 'black',
+                                'border': '1px solid #1f2c3e',
+                                'borderRadius': '4px'
+                            }
+                        ),
+                        dbc.Button("➡", id='next-location-plot',
+                                 style={
+                                     'backgroundColor': '#1f2c3e',
+                                     'borderColor': '#1f2c3e',
+                                     'color': 'white',
+                                     'padding': '0.375rem 0.75rem',
+                                     'height': '38px',
+                                     'width': '45px',
+                                     'display': 'flex',
+                                     'alignItems': 'center',
+                                     'justifyContent': 'center',
+                                     'marginLeft': '8px',
+                                     'borderRadius': '4px',
+                                     'fontSize': '20px'
+                                 }),
+                        dcc.Store(id='location-plot-index', data=0)
                     ], style={'display': 'flex', 'alignItems': 'center', 'marginBottom': '20px'}),
-
+                    
+                    # Date Navigation
                     html.Div([
-                        html.Label("Select Run:", style={'color': 'white', 'marginRight': '10px'}),
+                        html.Label("Date:", style={'color': 'white', 'marginRight': '15px', 'minWidth': '100px'}),
+                        dbc.Button("⬅", id='prev-date-plot',
+                                 style={
+                                     'backgroundColor': '#1f2c3e',
+                                     'borderColor': '#1f2c3e',
+                                     'color': 'white',
+                                     'padding': '0.375rem 0.75rem',
+                                     'height': '38px',
+                                     'width': '45px',
+                                     'display': 'flex',
+                                     'alignItems': 'center',
+                                     'justifyContent': 'center',
+                                     'marginRight': '8px',
+                                     'borderRadius': '4px',
+                                     'fontSize': '20px'
+                                 }),
+                        dcc.DatePickerSingle(
+                            id='date-plot-selector',
+                            date=dates[0],
+                            display_format='YYYY-MM-DD',
+                            style={
+                                'backgroundColor': '#1f2c3e', 'color': 'white', 'border': '1px solid #ccc',
+                                'borderRadius': '5px', 'padding': '5px 10px', 'margin': '0 10px',
+                                'textAlign': 'center', 'fontWeight': 'bold', 'cursor': 'pointer'
+                            },
+                            className='custom-date-picker',
+                            min_date_allowed=dates[0],
+                            max_date_allowed=dates[-1],
+                            disabled_days=[d for d in pd.date_range(start=dates[0], end=dates[-1]) if d.date() not in dates]
+                        ),
+                        dbc.Button("➡", id='next-date-plot',
+                                 style={
+                                     'backgroundColor': '#1f2c3e',
+                                     'borderColor': '#1f2c3e',
+                                     'color': 'white',
+                                     'padding': '0.375rem 0.75rem',
+                                     'height': '38px',
+                                     'width': '45px',
+                                     'display': 'flex',
+                                     'alignItems': 'center',
+                                     'justifyContent': 'center',
+                                     'marginLeft': '8px',
+                                     'borderRadius': '4px',
+                                     'fontSize': '20px'
+                                 }),
+                        dcc.Store(id='date-plot-index', data=0)
+                    ], style={'display': 'flex', 'alignItems': 'center', 'marginBottom': '20px'}),
+                    
+                    # Run Navigation
+                    html.Div([
+                        html.Label("Run:", style={'color': 'white', 'marginRight': '15px', 'minWidth': '100px'}),
+                        dbc.Button("⬅", id='prev-run-plot',
+                                 style={
+                                     'backgroundColor': '#1f2c3e',
+                                     'borderColor': '#1f2c3e',
+                                     'color': 'white',
+                                     'padding': '0.375rem 0.75rem',
+                                     'height': '38px',
+                                     'width': '45px',
+                                     'display': 'flex',
+                                     'alignItems': 'center',
+                                     'justifyContent': 'center',
+                                     'marginRight': '8px',
+                                     'borderRadius': '4px',
+                                     'fontSize': '20px'
+                                 }),
                         dcc.Dropdown(
-                            id='run-selector',
+                            id='run-plot-selector',
                             options=run_options,
-                            value=str(first_date_runs[0]) if first_date_runs else None,
+                            value=str(first_date_runs[0]) if len(first_date_runs) > 0 else None,
                             clearable=False,
-                            style={'width': '200px', 'display': 'inline-block', 'marginRight': '20px'}
-                        )
+                            style={
+                                'width': '200px',
+                                'backgroundColor': 'white',
+                                'color': 'black',
+                                'border': '1px solid #1f2c3e',
+                                'borderRadius': '4px'
+                            }
+                        ),
+                        
+                        dbc.Button("➡", id='next-run-plot',
+                                 style={
+                                     'backgroundColor': '#1f2c3e',
+                                     'borderColor': '#1f2c3e',
+                                     'color': 'white',
+                                     'padding': '0.375rem 0.75rem',
+                                     'height': '38px',
+                                     'width': '45px',
+                                     'display': 'flex',
+                                     'alignItems': 'center',
+                                     'justifyContent': 'center',
+                                     'marginLeft': '8px',
+                                     'borderRadius': '4px',
+                                     'fontSize': '20px'
+                                 }),
+                        dcc.Store(id='run-plot-index', data=0)
                     ], style={'display': 'flex', 'alignItems': 'center', 'marginBottom': '20px'})
                 ]),
-
                 html.Div(id='location-plots')
-            ], style={'padding': '20px'})
+            ], style={'padding': '20px', 'backgroundColor': '#15202b', 'minHeight': '100vh'})
 
         elif tab == 'trends':
             if df.empty:
@@ -123,39 +301,11 @@ def register_callbacks(dash_app, colors):
                     html.Div([
                         html.Div("Location", className='filter-label'),
                         html.Div([
-                            dbc.Button("⬅", id='prev-location-btn', 
-                              style={
-                                  'backgroundColor': '#1f2c3e',
-                                  'borderColor': '#1f2c3e',
-                                  'color': 'white',
-                                  'padding': '0.375rem 0.75rem',
-                                  'height': '38px',
-                                  'width': '45px',
-                                  'display': 'flex',
-                                  'alignItems': 'center',
-                                  'justifyContent': 'center',
-                                  'marginRight': '8px',
-                                  'borderRadius': '4px',
-                                  'fontSize': '20px'
-                              }),
+                            dbc.Button("◀️", id='prev-location-btn', color='primary', outline=True, size='sm'),
                             html.Div(locations[0] if locations else '', id='current-location-display', style={
                                 'padding': '0 15px', 'color': 'white', 'fontWeight': 'bold', 'display': 'inline-block'
                             }),
-                            dbc.Button("➡", id='next-location-btn',
-                              style={
-                                  'backgroundColor': '#1f2c3e',
-                                  'borderColor': '#1f2c3e',
-                                  'color': 'white',
-                                  'padding': '0.375rem 0.75rem',
-                                  'height': '38px',
-                                  'width': '45px',
-                                  'display': 'flex',
-                                  'alignItems': 'center',
-                                  'justifyContent': 'center',
-                                  'marginLeft': '8px',
-                                  'borderRadius': '4px',
-                                  'fontSize': '20px'
-                              }),
+                            dbc.Button("▶️", id='next-location-btn', color='primary', outline=True, size='sm'),
                             dcc.Store(id='location-index', data=0, storage_type='session'),
                             dcc.Input(id='trends-location', type='hidden', value=locations[0] if locations else '', debounce=True)
                         ], style={'display': 'flex', 'alignItems': 'center'})
@@ -178,41 +328,13 @@ def register_callbacks(dash_app, colors):
                     html.Div([
                         html.Div("Date Range", className='filter-label'),
                         html.Div([
-                             dbc.Button("⬅", id='prev-trends-date', 
-                              style={
-                                  'backgroundColor': '#1f2c3e',
-                                  'borderColor': '#1f2c3e',
-                                  'color': 'white',
-                                  'padding': '0.375rem 0.75rem',
-                                  'height': '38px',
-                                  'width': '45px',
-                                  'display': 'flex',
-                                  'alignItems': 'center',
-                                  'justifyContent': 'center',
-                                  'marginRight': '8px',
-                                  'borderRadius': '4px',
-                                  'fontSize': '20px'
-                              }),
+                            dbc.Button("◀️", id='prev-trends-date', color='secondary', outline=True, size='sm'),
                             dcc.DatePickerRange(
                                 id='trends-date-range',
                                 display_format='YYYY-MM-DD',
                                 style={'margin': '0 10px'}
                             ),
-                            dbc.Button("➡", id='next-trends-date',
-                              style={
-                                  'backgroundColor': '#1f2c3e',
-                                  'borderColor': '#1f2c3e',
-                                  'color': 'white',
-                                  'padding': '0.375rem 0.75rem',
-                                  'height': '38px',
-                                  'width': '45px',
-                                  'display': 'flex',
-                                  'alignItems': 'center',
-                                  'justifyContent': 'center',
-                                  'marginLeft': '8px',
-                                  'borderRadius': '4px',
-                                  'fontSize': '20px'
-                              }),
+                            dbc.Button("▶️", id='next-trends-date', color='secondary', outline=True, size='sm'),
                             dcc.Store(id='trends-date-index', data=0)
                         ], style={'display': 'flex', 'alignItems': 'center'})
                     ], className='filter-item'),
@@ -238,39 +360,11 @@ def register_callbacks(dash_app, colors):
                     html.Div([
                         html.Div("Parameter", className='filter-label'),
                         html.Div([
-                             dbc.Button("⬅", id='prev-heatmap-param', 
-                              style={
-                                  'backgroundColor': '#1f2c3e',
-                                  'borderColor': '#1f2c3e',
-                                  'color': 'white',
-                                  'padding': '0.375rem 0.75rem',
-                                  'height': '38px',
-                                  'width': '45px',
-                                  'display': 'flex',
-                                  'alignItems': 'center',
-                                  'justifyContent': 'center',
-                                  'marginRight': '8px',
-                                  'borderRadius': '4px',
-                                  'fontSize': '20px'
-                              }),
+                            dbc.Button("◀️", id='prev-heatmap-param', color='primary', outline=True, size='sm'),
                             html.Div(PARAMETERS[0].replace("_", " ").title(), id='current-heatmap-param-display', style={
                                 'padding': '0 15px', 'color': 'white', 'fontWeight': 'bold', 'display': 'inline-block'
                             }),
-                            dbc.Button("➡", id='next-heatmap-param',
-                              style={
-                                  'backgroundColor': '#1f2c3e',
-                                  'borderColor': '#1f2c3e',
-                                  'color': 'white',
-                                  'padding': '0.375rem 0.75rem',
-                                  'height': '38px',
-                                  'width': '45px',
-                                  'display': 'flex',
-                                  'alignItems': 'center',
-                                  'justifyContent': 'center',
-                                  'marginLeft': '8px',
-                                  'borderRadius': '4px',
-                                  'fontSize': '20px'
-                              }),
+                            dbc.Button("▶️", id='next-heatmap-param', color='primary', outline=True, size='sm'),
                             dcc.Store(id='heatmap-param-index', data=0),
                             dcc.Input(id='heatmap-param', type='hidden', value=PARAMETERS[0])
                         ], style={'display': 'flex', 'alignItems': 'center'})
@@ -280,21 +374,7 @@ def register_callbacks(dash_app, colors):
                     html.Div([
                         html.Div("Date", className='filter-label'),
                         html.Div([
-                             dbc.Button("⬅", id='prev-heatmap-date', 
-                              style={
-                                  'backgroundColor': '#1f2c3e',
-                                  'borderColor': '#1f2c3e',
-                                  'color': 'white',
-                                  'padding': '0.375rem 0.75rem',
-                                  'height': '38px',
-                                  'width': '45px',
-                                  'display': 'flex',
-                                  'alignItems': 'center',
-                                  'justifyContent': 'center',
-                                  'marginRight': '8px',
-                                  'borderRadius': '4px',
-                                  'fontSize': '20px'
-                              }),
+                            dbc.Button("◀️", id='prev-heatmap-date', color='secondary', outline=True, size='sm'),
                             dcc.DatePickerSingle(
                                 id='heatmap-date-picker',
                                 date=dates[0],
@@ -309,21 +389,7 @@ def register_callbacks(dash_app, colors):
                                 max_date_allowed=dates[-1],
                                 disabled_days=[d for d in pd.date_range(start=dates[0], end=dates[-1]) if d.date() not in dates]
                             ),
-                            dbc.Button("➡", id='next-heatmap-date',
-                              style={
-                                  'backgroundColor': '#1f2c3e',
-                                  'borderColor': '#1f2c3e',
-                                  'color': 'white',
-                                  'padding': '0.375rem 0.75rem',
-                                  'height': '38px',
-                                  'width': '45px',
-                                  'display': 'flex',
-                                  'alignItems': 'center',
-                                  'justifyContent': 'center',
-                                  'marginLeft': '8px',
-                                  'borderRadius': '4px',
-                                  'fontSize': '20px'
-                              }),
+                            dbc.Button("▶️", id='next-heatmap-date', color='secondary', outline=True, size='sm'),
                             dcc.Store(id='heatmap-date-index', data=0),
                             dcc.Input(id='heatmap-date', type='hidden', value=str(dates[0]) if dates else '')
                         ], style={'display': 'flex', 'alignItems': 'center'})
@@ -333,21 +399,7 @@ def register_callbacks(dash_app, colors):
                     html.Div([
                         html.Div("Run", className='filter-label'),
                         html.Div([
-                             dbc.Button("⬅", id='prev-heatmap-run', 
-                              style={
-                                  'backgroundColor': '#1f2c3e',
-                                  'borderColor': '#1f2c3e',
-                                  'color': 'white',
-                                  'padding': '0.375rem 0.75rem',
-                                  'height': '38px',
-                                  'width': '45px',
-                                  'display': 'flex',
-                                  'alignItems': 'center',
-                                  'justifyContent': 'center',
-                                  'marginRight': '8px',
-                                  'borderRadius': '4px',
-                                  'fontSize': '20px'
-                              }),
+                            dbc.Button("◀️", id='prev-heatmap-run', color='info', outline=True, size='sm'),
                             html.Div(
                                 f"Run {first_date_runs[0]}" if first_date_runs else 'No Run',
                                 id='current-heatmap-run-display',
@@ -355,21 +407,7 @@ def register_callbacks(dash_app, colors):
                                     'padding': '0 15px', 'color': 'white', 'fontWeight': 'bold', 'display': 'inline-block'
                                 }
                             ),
-                            dbc.Button("➡", id='next-heatmap-run',
-                              style={
-                                  'backgroundColor': '#1f2c3e',
-                                  'borderColor': '#1f2c3e',
-                                  'color': 'white',
-                                  'padding': '0.375rem 0.75rem',
-                                  'height': '38px',
-                                  'width': '45px',
-                                  'display': 'flex',
-                                  'alignItems': 'center',
-                                  'justifyContent': 'center',
-                                  'marginLeft': '8px',
-                                  'borderRadius': '4px',
-                                  'fontSize': '20px'
-                              }),
+                            dbc.Button("▶️", id='next-heatmap-run', color='info', outline=True, size='sm'),
                             dcc.Store(id='heatmap-run-index', data=0),
                             dcc.Input(id='heatmap-run', type='hidden', value=str(first_date_runs[0]) if first_date_runs else '')
                         ], style={'display': 'flex', 'alignItems': 'center'})
@@ -447,67 +485,76 @@ def register_callbacks(dash_app, colors):
         )
 
 
-    # 📉 Render stacked parameter bars for each location for selected date and run
+    # 📉 Render stacked parameter bars for selected location, date and run
     @dash_app.callback(
         Output('location-plots', 'children'),
-        Input('date-selector', 'value'),
-        Input('run-selector', 'value')
+        Input('location-plot-selector', 'value'),
+        Input('date-plot-selector', 'date'),
+        Input('run-plot-selector', 'value')
     )
-    def render_location_wise_comparison_graphs(selected_date, selected_run):
+    def render_location_wise_comparison_graphs(selected_location, selected_date, selected_run):
         df = load_wifi_data()
-        if df.empty or not selected_date or not selected_run:
-            return html.Div()
+        if df.empty or not selected_location or not selected_date or not selected_run:
+            return html.Div("No data available for selected parameters", style={
+                'color': 'white',
+                'backgroundColor': '#1f2c3e',
+                'padding': '20px',
+                'borderRadius': '10px',
+                'textAlign': 'center',
+                'margin': '20px 0'
+            })
 
         df['date'] = pd.to_datetime(df['timestamp']).dt.date
-        run_data = df[(df['date'] == pd.to_datetime(selected_date).date()) & 
-                    (df['run_no'] == int(selected_run))]
+        selected_date_obj = pd.to_datetime(selected_date).date()
+        run_data = df[(df['date'] == selected_date_obj) & 
+                    (df['run_no'] == int(selected_run)) &
+                    (df['location'] == selected_location)]
 
-        locations = run_data['location'].unique()
-        if len(locations) == 0:
-            return html.Div("No data available for selected date and run")
+        if len(run_data) == 0:
+            return html.Div("No records found for selected date and run", style={
+                'color': 'white',
+                'backgroundColor': '#1f2c3e',
+                'padding': '20px',
+                'borderRadius': '10px',
+                'textAlign': 'center',
+                'margin': '20px 0'
+            })
 
-        plots = []
-        for location in locations:
-            loc_data = run_data[run_data['location'] == location]
-            time_str = loc_data['timestamp'].iloc[0].strftime('%H:%M:%S')
+        time_str = run_data['timestamp'].iloc[0].strftime('%H:%M:%S')
 
-            fig = go.Figure()
-            for param in PARAMETERS:
-                fig.add_trace(go.Bar(
-                    name=PARAMETER_LABELS[param],
-                    x=[param],
-                    y=[loc_data[param].iloc[0]],
-                    marker_color=colors.get(param, 'gray'),
-                    text=[f"{loc_data[param].iloc[0]:.2f}"],
-                    textposition='auto',
-                    hovertemplate=f"<b>{PARAMETER_LABELS[param]}</b><br>Value: %{{y:.2f}}<br>Time: {time_str}<extra></extra>"
-                ))
+        fig = go.Figure()
+        for param in PARAMETERS:
+            fig.add_trace(go.Bar(
+                name=PARAMETER_LABELS[param],
+                x=[param],
+                y=[run_data[param].iloc[0]],
+                marker_color=colors.get(param, 'gray'),
+                text=[f"{run_data[param].iloc[0]:.2f}"],
+                textposition='auto',
+                hovertemplate=f"<b>{PARAMETER_LABELS[param]}</b><br>Value: %{{y:.2f}}<br>Time: {time_str}<extra></extra>"
+            ))
 
-            fig.update_layout(
-                title=dict(
-                    text=f"Parameters for {location}<br><sup>Date: {selected_date} | Time: {time_str} | Run: {selected_run}</sup>",
-                    x=0.5, xanchor='center', yanchor='top'
-                ),
-                barmode='group',
-                plot_bgcolor='white',
-                paper_bgcolor='white',
-                font=dict(color=colors['text']),
-                margin=dict(l=60, r=20, t=80, b=50),
-                height=400
-            )
+        fig.update_layout(
+            title=dict(
+                text=f"Parameters for {selected_location}<br><sup>Date: {selected_date} | Time: {time_str} | Run: {selected_run}</sup>",
+                x=0.5, xanchor='center', yanchor='top'
+            ),
+            barmode='group',
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            font=dict(color=colors['text']),
+            margin=dict(l=60, r=20, t=80, b=50),
+            height=400,
+            yaxis=dict(visible=False)  # Hide y-axis
+        )
 
-            plots.append(
-                html.Div([
-                    html.H4(location, style={
-                        'color': 'white', 'marginBottom': '20px', 'textAlign': 'center',
-                        'backgroundColor': '#1f2c3e', 'padding': '10px', 'borderRadius': '10px'
-                    }),
-                    dcc.Graph(figure=fig),
-                    html.Hr(style={'borderColor': 'white', 'margin': '30px 0'})
-                ])
-            )
-
-        return plots
+        return html.Div([
+            html.H4(selected_location, style={
+                'color': 'white', 'marginBottom': '20px', 'textAlign': 'center',
+                'backgroundColor': '#1f2c3e', 'padding': '10px', 'borderRadius': '10px'
+            }),
+            dcc.Graph(figure=fig)
+        ])
 
 
     # 🔄 Update run dropdown options based on selected date
@@ -924,6 +971,8 @@ def register_callbacks(dash_app, colors):
 
         return fig
 
+
+    
     # ════════════════════════════════════════════════════════════════
     # SECTION: INSIGHTS TAB (Coming Soon)
     # ════════════════════════════════════════════════════════════════
@@ -952,3 +1001,140 @@ def register_callbacks(dash_app, colors):
         new_state = not state_data['active']
         new_label = "Stop" if new_state else "Start"
         return new_label, {'active': new_state}
+
+    # 🔁 Change current location with prev/next buttons in Overview
+    @dash_app.callback(
+        Output('location-card-index', 'data'),
+        Output('location-selector', 'value'),
+        Input('prev-location-card', 'n_clicks'),
+        Input('next-location-card', 'n_clicks'),
+        State('location-card-index', 'data'),
+        prevent_initial_call=True
+    )
+    def switch_overview_location(prev_clicks, next_clicks, current_index):
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            return current_index, dash.no_update
+
+        df = load_wifi_data()
+        locations = sorted(df['location'].unique())
+
+        if not locations:
+            return 0, None
+
+        triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        if triggered_id == 'prev-location-card':
+            new_index = (current_index - 1) % len(locations)
+        else:
+            new_index = (current_index + 1) % len(locations)
+
+        new_location = locations[new_index]
+        return new_index, new_location
+
+    # 🔁 Change current date with prev/next buttons in Run Analysis
+    @dash_app.callback(
+        Output('date-plot-index', 'data'),
+        Output('date-plot-selector', 'date'),
+        Input('prev-date-plot', 'n_clicks'),
+        Input('next-date-plot', 'n_clicks'),
+        Input('date-plot-selector', 'date'),
+        State('date-plot-index', 'data'),
+        prevent_initial_call=True
+    )
+    def switch_run_analysis_date(prev_clicks, next_clicks, selected_date, current_index):
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            return current_index, dash.no_update
+
+        df = load_wifi_data()
+        dates = sorted(pd.to_datetime(df['timestamp']).dt.date.unique())
+
+        if not dates:
+            return 0, None
+
+        triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        if triggered_id == 'prev-date-plot':
+            new_index = (current_index - 1) % len(dates)
+            new_date = dates[new_index]
+        elif triggered_id == 'next-date-plot':
+            new_index = (current_index + 1) % len(dates)
+            new_date = dates[new_index]
+        elif triggered_id == 'date-plot-selector':
+            picked_date = pd.to_datetime(selected_date).date()
+            if picked_date in dates:
+                new_index = dates.index(picked_date)
+                new_date = picked_date
+            else:
+                return current_index, selected_date
+        else:
+            return current_index, dash.no_update
+
+        return new_index, new_date
+
+    # 🔁 Change current run with prev/next buttons in Run Analysis
+    @dash_app.callback(
+        Output('run-plot-index', 'data'),
+        Output('run-plot-selector', 'value'),
+        Input('prev-run-plot', 'n_clicks'),
+        Input('next-run-plot', 'n_clicks'),
+        Input('date-plot-selector', 'value'),
+        State('run-plot-index', 'data'),
+        prevent_initial_call=True
+    )
+    def switch_run_analysis_run(prev_clicks, next_clicks, selected_date, current_index):
+        ctx = dash.callback_context
+        if not selected_date:
+            return current_index, dash.no_update
+
+        df = load_wifi_data()
+        df['date'] = pd.to_datetime(df['timestamp']).dt.date
+        selected_date_obj = pd.to_datetime(selected_date).date()
+        run_list = sorted(df[df['date'] == selected_date_obj]['run_no'].unique())
+
+        if not run_list:
+            return 0, None
+
+        triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        if triggered_id == 'prev-run-plot':
+            new_index = (current_index - 1) % len(run_list)
+        elif triggered_id == 'next-run-plot':
+            new_index = (current_index + 1) % len(run_list)
+        else:
+            new_index = 0  # reset to first run on date change
+
+        new_run = str(run_list[new_index])
+        return new_index, new_run
+
+    # 🔁 Change current location with prev/next buttons in Run Analysis
+    @dash_app.callback(
+        Output('location-plot-index', 'data'),
+        Output('location-plot-selector', 'value'),
+        Input('prev-location-plot', 'n_clicks'),
+        Input('next-location-plot', 'n_clicks'),
+        State('location-plot-index', 'data'),
+        State('location-plot-selector', 'value'),
+        prevent_initial_call=True
+    )
+    def switch_run_analysis_location(prev_clicks, next_clicks, current_index, current_location):
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            return current_index, dash.no_update
+
+        df = load_wifi_data()
+        locations = sorted(df['location'].unique())
+
+        if not locations:
+            return 0, None
+
+        # If we have a current location, find its index
+        if current_location in locations:
+            current_index = locations.index(current_location)
+
+        triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        if triggered_id == 'prev-location-plot':
+            new_index = (current_index - 1) % len(locations)
+        else:
+            new_index = (current_index + 1) % len(locations)
+
+        new_location = locations[new_index]
+        return new_index, new_location

@@ -20,7 +20,7 @@ def serve_layout(colors, locations, dates, hours):
         html.Div([
             html.H2("Airport WiFi Performance", style={
                 'margin': '0',
-                'padding': '10px 0',
+                'padding': '20px 0 30px 0',
                 'textAlign': 'center',
                 'color': colors['text']
             }),
@@ -31,6 +31,7 @@ def serve_layout(colors, locations, dates, hours):
                 value='overview',
                 children=[
                     dcc.Tab(label='Overview', value='overview', className='custom-tab', selected_className='custom-tab-selected'),
+                    dcc.Tab(label='Run Analysis', value='run_analysis', className='custom-tab', selected_className='custom-tab-selected'),
                     dcc.Tab(label='Trends', value='trends', className='custom-tab', selected_className='custom-tab-selected'),
                     dcc.Tab(label='Heatmap', value='heatmap', className='custom-tab', selected_className='custom-tab-selected'),
                     dcc.Tab(label='Insights', value='insights', className='custom-tab', selected_className='custom-tab-selected'),
