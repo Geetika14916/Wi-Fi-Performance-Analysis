@@ -7,14 +7,17 @@ def serve_layout(colors, locations, dates, hours):
 
 
         # 📍 Top-right Start/Stop Button
+    html.Div([
         html.Div([
-            html.Button("Start", id='data-toggle-btn', n_clicks=0, className='small-btn'),
+            html.Button("Collection", id='data-toggle-btn', n_clicks=0, className='small-btn'),
+            html.A(id='hidden-link', href='/collection', target='_blank', style={'display': 'none'})
         ], style={
             'position': 'absolute',
             'top': '15px',
             'right': '30px',
             'zIndex': 999
-        }),
+        })
+    ]),
 
         # 🧭 Page Header and Tabs Section
         html.Div([

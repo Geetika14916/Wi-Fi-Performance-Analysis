@@ -1122,25 +1122,22 @@ def register_callbacks(dash_app, colors):
     # Toggle buttons, state management, and common data handlers
     # ════════════════════════════════════════════════════════════════
 
-    # 🔘 Toggle data collection (start/stop) via button
-    @dash_app.callback(
-        Output('data-toggle-btn', 'children'),
-        Output('collection-state', 'data'),
-        Input('data-toggle-btn', 'n_clicks'),
-        State('collection-state', 'data'),
-        prevent_initial_call=True
+    # 🔘 Toggle data collection (redirect to "/collection" route) via button
+    # 🔁 Callback to trigger opening new tab
+    dash_app.clientside_callback(
+        """
+        function(n_clicks) {
+            if (n_clicks > 0) {
+                const link = document.getElementById('hidden-link');
+                if (link) link.click();
+            }
+            return '';
+        }
+        """,
+        dash.Output('hidden-link', 'data-dummy'),
+        dash.Input('data-toggle-btn', 'n_clicks')
     )
-    def toggle_data_collection_state(n_clicks, state_data):
-        """
-        Toggles the data collection button label and state data.
-        State is stored in dcc.Store as {'active': True/False}
-        """
-        if not state_data or 'active' not in state_data:
-            state_data = {'active': False}
 
-        new_state = not state_data['active']
-        new_label = "Stop" if new_state else "Start"
-        return new_label, {'active': new_state}
 
     # 🔁 Change current location with prev/next buttons in Overview
     @dash_app.callback(
