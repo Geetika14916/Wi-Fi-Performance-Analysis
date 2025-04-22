@@ -529,7 +529,7 @@ def register_callbacks(dash_app, colors):
                 x=[param],
                 y=[run_data[param].iloc[0]],
                 marker_color=colors.get(param, 'gray'),
-                text=[f"{run_data[param].iloc[0]:.2f}"],
+                text=[f"{run_data[param].iloc[0]:.2f}{PARAMETER_LABELS[param].split('(')[1].strip(')')}"],
                 textposition='auto',
                 hovertemplate=f"<b>{PARAMETER_LABELS[param]}</b><br>Value: %{{y:.2f}}<br>Time: {time_str}<extra></extra>"
             ))
@@ -540,6 +540,7 @@ def register_callbacks(dash_app, colors):
                 x=0.5, xanchor='center', yanchor='top'
             ),
             barmode='group',
+            showlegend=False,
             plot_bgcolor='white',
             paper_bgcolor='white',
             font=dict(color=colors['text']),
