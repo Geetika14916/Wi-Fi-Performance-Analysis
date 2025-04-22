@@ -301,11 +301,39 @@ def register_callbacks(dash_app, colors):
                     html.Div([
                         html.Div("Location", className='filter-label'),
                         html.Div([
-                            dbc.Button("◀️", id='prev-location-btn', color='primary', outline=True, size='sm'),
+                            dbc.Button("⬅", id='prev-location-btn', 
+                              style={
+                                  'backgroundColor': '#1f2c3e',
+                                  'borderColor': '#1f2c3e',
+                                  'color': 'white',
+                                  'padding': '0.375rem 0.75rem',
+                                  'height': '38px',
+                                  'width': '45px',
+                                  'display': 'flex',
+                                  'alignItems': 'center',
+                                  'justifyContent': 'center',
+                                  'marginRight': '8px',
+                                  'borderRadius': '4px',
+                                  'fontSize': '20px'
+                              }),
                             html.Div(locations[0] if locations else '', id='current-location-display', style={
                                 'padding': '0 15px', 'color': 'white', 'fontWeight': 'bold', 'display': 'inline-block'
                             }),
-                            dbc.Button("▶️", id='next-location-btn', color='primary', outline=True, size='sm'),
+                            dbc.Button("➡", id='next-location-btn',
+                              style={
+                                  'backgroundColor': '#1f2c3e',
+                                  'borderColor': '#1f2c3e',
+                                  'color': 'white',
+                                  'padding': '0.375rem 0.75rem',
+                                  'height': '38px',
+                                  'width': '45px',
+                                  'display': 'flex',
+                                  'alignItems': 'center',
+                                  'justifyContent': 'center',
+                                  'marginLeft': '8px',
+                                  'borderRadius': '4px',
+                                  'fontSize': '20px'
+                              }),
                             dcc.Store(id='location-index', data=0, storage_type='session'),
                             dcc.Input(id='trends-location', type='hidden', value=locations[0] if locations else '', debounce=True)
                         ], style={'display': 'flex', 'alignItems': 'center'})
@@ -328,13 +356,41 @@ def register_callbacks(dash_app, colors):
                     html.Div([
                         html.Div("Date Range", className='filter-label'),
                         html.Div([
-                            dbc.Button("◀️", id='prev-trends-date', color='secondary', outline=True, size='sm'),
+                             dbc.Button("⬅", id='prev-trends-date', 
+                              style={
+                                  'backgroundColor': '#1f2c3e',
+                                  'borderColor': '#1f2c3e',
+                                  'color': 'white',
+                                  'padding': '0.375rem 0.75rem',
+                                  'height': '38px',
+                                  'width': '45px',
+                                  'display': 'flex',
+                                  'alignItems': 'center',
+                                  'justifyContent': 'center',
+                                  'marginRight': '8px',
+                                  'borderRadius': '4px',
+                                  'fontSize': '20px'
+                              }),
                             dcc.DatePickerRange(
                                 id='trends-date-range',
                                 display_format='YYYY-MM-DD',
                                 style={'margin': '0 10px'}
                             ),
-                            dbc.Button("▶️", id='next-trends-date', color='secondary', outline=True, size='sm'),
+                            dbc.Button("➡", id='next-trends-date',
+                              style={
+                                  'backgroundColor': '#1f2c3e',
+                                  'borderColor': '#1f2c3e',
+                                  'color': 'white',
+                                  'padding': '0.375rem 0.75rem',
+                                  'height': '38px',
+                                  'width': '45px',
+                                  'display': 'flex',
+                                  'alignItems': 'center',
+                                  'justifyContent': 'center',
+                                  'marginLeft': '8px',
+                                  'borderRadius': '4px',
+                                  'fontSize': '20px'
+                              }),
                             dcc.Store(id='trends-date-index', data=0)
                         ], style={'display': 'flex', 'alignItems': 'center'})
                     ], className='filter-item'),
@@ -360,11 +416,39 @@ def register_callbacks(dash_app, colors):
                     html.Div([
                         html.Div("Parameter", className='filter-label'),
                         html.Div([
-                            dbc.Button("◀️", id='prev-heatmap-param', color='primary', outline=True, size='sm'),
+                             dbc.Button("⬅", id='prev-heatmap-param', 
+                              style={
+                                  'backgroundColor': '#1f2c3e',
+                                  'borderColor': '#1f2c3e',
+                                  'color': 'white',
+                                  'padding': '0.375rem 0.75rem',
+                                  'height': '38px',
+                                  'width': '45px',
+                                  'display': 'flex',
+                                  'alignItems': 'center',
+                                  'justifyContent': 'center',
+                                  'marginRight': '8px',
+                                  'borderRadius': '4px',
+                                  'fontSize': '20px'
+                              }),
                             html.Div(PARAMETERS[0].replace("_", " ").title(), id='current-heatmap-param-display', style={
                                 'padding': '0 15px', 'color': 'white', 'fontWeight': 'bold', 'display': 'inline-block'
                             }),
-                            dbc.Button("▶️", id='next-heatmap-param', color='primary', outline=True, size='sm'),
+                            dbc.Button("➡", id='next-heatmap-param',
+                              style={
+                                  'backgroundColor': '#1f2c3e',
+                                  'borderColor': '#1f2c3e',
+                                  'color': 'white',
+                                  'padding': '0.375rem 0.75rem',
+                                  'height': '38px',
+                                  'width': '45px',
+                                  'display': 'flex',
+                                  'alignItems': 'center',
+                                  'justifyContent': 'center',
+                                  'marginLeft': '8px',
+                                  'borderRadius': '4px',
+                                  'fontSize': '20px'
+                              }),
                             dcc.Store(id='heatmap-param-index', data=0),
                             dcc.Input(id='heatmap-param', type='hidden', value=PARAMETERS[0])
                         ], style={'display': 'flex', 'alignItems': 'center'})
@@ -374,7 +458,21 @@ def register_callbacks(dash_app, colors):
                     html.Div([
                         html.Div("Date", className='filter-label'),
                         html.Div([
-                            dbc.Button("◀️", id='prev-heatmap-date', color='secondary', outline=True, size='sm'),
+                             dbc.Button("⬅", id='prev-heatmap-date', 
+                              style={
+                                  'backgroundColor': '#1f2c3e',
+                                  'borderColor': '#1f2c3e',
+                                  'color': 'white',
+                                  'padding': '0.375rem 0.75rem',
+                                  'height': '38px',
+                                  'width': '45px',
+                                  'display': 'flex',
+                                  'alignItems': 'center',
+                                  'justifyContent': 'center',
+                                  'marginRight': '8px',
+                                  'borderRadius': '4px',
+                                  'fontSize': '20px'
+                              }),
                             dcc.DatePickerSingle(
                                 id='heatmap-date-picker',
                                 date=dates[0],
@@ -389,7 +487,21 @@ def register_callbacks(dash_app, colors):
                                 max_date_allowed=dates[-1],
                                 disabled_days=[d for d in pd.date_range(start=dates[0], end=dates[-1]) if d.date() not in dates]
                             ),
-                            dbc.Button("▶️", id='next-heatmap-date', color='secondary', outline=True, size='sm'),
+                            dbc.Button("➡", id='next-heatmap-date',
+                              style={
+                                  'backgroundColor': '#1f2c3e',
+                                  'borderColor': '#1f2c3e',
+                                  'color': 'white',
+                                  'padding': '0.375rem 0.75rem',
+                                  'height': '38px',
+                                  'width': '45px',
+                                  'display': 'flex',
+                                  'alignItems': 'center',
+                                  'justifyContent': 'center',
+                                  'marginLeft': '8px',
+                                  'borderRadius': '4px',
+                                  'fontSize': '20px'
+                              }),
                             dcc.Store(id='heatmap-date-index', data=0),
                             dcc.Input(id='heatmap-date', type='hidden', value=str(dates[0]) if dates else '')
                         ], style={'display': 'flex', 'alignItems': 'center'})
@@ -399,7 +511,21 @@ def register_callbacks(dash_app, colors):
                     html.Div([
                         html.Div("Run", className='filter-label'),
                         html.Div([
-                            dbc.Button("◀️", id='prev-heatmap-run', color='info', outline=True, size='sm'),
+                             dbc.Button("⬅", id='prev-heatmap-run', 
+                              style={
+                                  'backgroundColor': '#1f2c3e',
+                                  'borderColor': '#1f2c3e',
+                                  'color': 'white',
+                                  'padding': '0.375rem 0.75rem',
+                                  'height': '38px',
+                                  'width': '45px',
+                                  'display': 'flex',
+                                  'alignItems': 'center',
+                                  'justifyContent': 'center',
+                                  'marginRight': '8px',
+                                  'borderRadius': '4px',
+                                  'fontSize': '20px'
+                              }),
                             html.Div(
                                 f"Run {first_date_runs[0]}" if first_date_runs else 'No Run',
                                 id='current-heatmap-run-display',
@@ -407,7 +533,21 @@ def register_callbacks(dash_app, colors):
                                     'padding': '0 15px', 'color': 'white', 'fontWeight': 'bold', 'display': 'inline-block'
                                 }
                             ),
-                            dbc.Button("▶️", id='next-heatmap-run', color='info', outline=True, size='sm'),
+                            dbc.Button("➡", id='next-heatmap-run',
+                              style={
+                                  'backgroundColor': '#1f2c3e',
+                                  'borderColor': '#1f2c3e',
+                                  'color': 'white',
+                                  'padding': '0.375rem 0.75rem',
+                                  'height': '38px',
+                                  'width': '45px',
+                                  'display': 'flex',
+                                  'alignItems': 'center',
+                                  'justifyContent': 'center',
+                                  'marginLeft': '8px',
+                                  'borderRadius': '4px',
+                                  'fontSize': '20px'
+                              }),
                             dcc.Store(id='heatmap-run-index', data=0),
                             dcc.Input(id='heatmap-run', type='hidden', value=str(first_date_runs[0]) if first_date_runs else '')
                         ], style={'display': 'flex', 'alignItems': 'center'})
@@ -419,7 +559,6 @@ def register_callbacks(dash_app, colors):
 
                 dcc.Graph(id='heatmap-graph', className='graph-container')
             ], style={'maxWidth': None, 'margin': '0 auto'})
-
         elif tab == 'insights':
             return html.Div([
                 html.H3("🧠 AI-based insights will go here.")
