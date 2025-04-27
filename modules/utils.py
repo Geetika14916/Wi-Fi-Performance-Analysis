@@ -1,15 +1,8 @@
-# modules/utils.py
-dummy_location_to_pixel = {
-    "SDB": (100, 150),
-    "GEC": (300, 120),
-    "ECC": (220, 300),
-    "FOODCOURT": (400, 250),
-    "LOUNGE": (500, 200)
-}
+from modules.config import LOCATION_PIXEL_COORDS
 
 
 def get_pixel_coords(location_name):
-    return dummy_location_to_pixel.get(location_name, (0, 0))
+    return LOCATION_PIXEL_COORDS.get(location_name, (0, 0))
 
 def create_empty_figure(title,colors):
         return {
