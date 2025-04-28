@@ -28,9 +28,9 @@ def register_run_analysis_callbacks(dash_app, colors):
 
         df['date'] = pd.to_datetime(df['timestamp']).dt.date
         selected_date_obj = pd.to_datetime(selected_date).date()
-        run_data = df[(df['date'] == selected_date_obj) & 
-                    (df['run_no'] == int(selected_run)) &
-                    (df['location'] == selected_location)]
+        run_data = df[(df['date'] == selected_date_obj) &
+                      (df['run_no'] == int(selected_run)) &
+                      (df['location'] == selected_location)]
 
         if len(run_data) == 0:
             return html.Div("No records found for selected date and run", style={
@@ -42,23 +42,37 @@ def register_run_analysis_callbacks(dash_app, colors):
                 'margin': '20px 0'
             })
 
-        time_str = run_data['timestamp'].iloc[0].strftime('%H:%M:%S')
+        run_time = run_data['timestamp'].iloc[0].strftime('%H:%M:%S')
 
         fig = go.Figure()
+
         for param in PARAMETERS:
+            value = run_data[param].iloc[0]
+            if pd.isna(value):
+                display_text = "N/A"
+                plot_value = 0  # Plot zero for missing values
+            else:
+                unit = PARAMETER_LABELS[param].split('(')[1].strip(')')
+                display_text = f"{value:.2f} {unit}"
+                plot_value = value
+
             fig.add_trace(go.Bar(
                 name=PARAMETER_LABELS[param],
                 x=[param],
-                y=[run_data[param].iloc[0]],
+                y=[plot_value],
                 marker_color=colors.get(param, 'gray'),
-                text=[f"{run_data[param].iloc[0]:.2f}{PARAMETER_LABELS[param].split('(')[1].strip(')')}"],
+                text=[display_text],
                 textposition='auto',
-                hovertemplate=f"<b>{PARAMETER_LABELS[param]}</b><br>Value: %{{y:.2f}}<br>Time: {time_str}<extra></extra>"
+                hovertemplate=(
+                    f"<b>{PARAMETER_LABELS[param]}</b><br>"
+                    f"Value: {display_text}<br>"
+                    f"Time: {run_time}<extra></extra>"
+                )
             ))
 
         fig.update_layout(
             title=dict(
-                text=f"Parameters for {selected_location}<br><sup>Date: {selected_date} | Time: {time_str} | Run: {selected_run}</sup>",
+                text=f"Parameters for {selected_location}<br><sup>Date: {selected_date} | Time: {run_time} | Run: {selected_run}</sup>",
                 x=0.5, xanchor='center', yanchor='top'
             ),
             barmode='group',
@@ -78,4 +92,3 @@ def register_run_analysis_callbacks(dash_app, colors):
             }),
             dcc.Graph(figure=fig)
         ])
-

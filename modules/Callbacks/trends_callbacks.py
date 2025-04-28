@@ -13,7 +13,6 @@ def register_trends_callbacks(dash_app, colors):
     # Generates time series and hourly bar charts for selected location/parameters
     # ════════════════════════════════════════════════════════════════
 
-
     # 🔁 Change current location with prev/next buttons
     @dash_app.callback(
         Output('location-index', 'data'),
@@ -63,7 +62,7 @@ def register_trends_callbacks(dash_app, colors):
 
         filtered_df = df[df['location'] == location]
 
-        # Filter date range
+        # Filter date range dynamically
         if start_date and end_date:
             start = pd.to_datetime(start_date).date()
             end = pd.to_datetime(end_date).date()
@@ -82,6 +81,7 @@ def register_trends_callbacks(dash_app, colors):
         fig = go.Figure()
 
         for param in parameters:
+            # Fetch min and max dynamically
             global_min = df[param].min()
             global_max = df[param].max()
             if global_min == global_max:
@@ -101,21 +101,20 @@ def register_trends_callbacks(dash_app, colors):
 
             unit = PARAMETER_LABELS[param].split()[-1].strip("()")
             merged['label'] = merged[param].apply(
-                lambda x: f"{x:.2f} {unit}" if pd.notna(x) else "NoData"
+                lambda x: f"{x:.2f} {unit}" if pd.notna(x) else "<br>No<br>Data"
             )
 
+            # Dynamically handle colors
             fig.add_trace(go.Bar(
                 x=merged['run_label'],
                 y=merged['normalized'],
                 name=PARAMETER_LABELS[param],
                 text=merged['label'],
                 textposition='auto',
-                hovertemplate=(
-                    f"<b>{PARAMETER_LABELS[param]}</b><br>" +
-                    "Run: %{x}<br>" +
-                    "Normalized: %{y:.2f}<br>" +
-                    "Value: %{text}<extra></extra>"
-                ),
+                hovertemplate=(f"<b>{PARAMETER_LABELS[param]}</b><br>" +
+                               "Run: %{x}<br>" +
+                               "Normalized: %{y:.2f}<br>" +
+                               "Value: %{text}<extra></extra>"),
                 marker=dict(
                     color=colors.get(param, 'gray'),
                     line=dict(color=colors.get(param, 'gray'), width=2)

@@ -1,18 +1,15 @@
-# modules/callbacks/shared_callbacks.py
 import dash
 import pandas as pd
 from dash import Input, Output, State
 from modules.data_loader import load_wifi_data
 
 def register_shared_callbacks(dash_app, colors):
-
     # ════════════════════════════════════════════════════════════════
     # SECTION: SHARED CALLBACKS & INTERACTIONS
-    # Toggle buttons, state management, and common data handlers
+    # Toggle buttons, state management, and shared data navigation
     # ════════════════════════════════════════════════════════════════
 
-    # 🔘 Toggle data collection (redirect to "/collection" route) via button
-    # 🔁 Callback to trigger opening new tab
+    # 🔘 Open data collection page (via hidden link trigger)
     dash_app.clientside_callback(
         """
         function(n_clicks) {
@@ -23,12 +20,11 @@ def register_shared_callbacks(dash_app, colors):
             return '';
         }
         """,
-        dash.Output('hidden-link', 'data-dummy'),
-        dash.Input('data-toggle-btn', 'n_clicks')
+        Output('hidden-link', 'data-dummy'),
+        Input('data-toggle-btn', 'n_clicks')
     )
 
-
-    # 🔁 Change current location with prev/next buttons in Overview
+    # 🔁 Switch location (prev/next) in Overview
     @dash_app.callback(
         Output('location-card-index', 'data'),
         Output('location-selector', 'value'),
@@ -48,16 +44,15 @@ def register_shared_callbacks(dash_app, colors):
         if not locations:
             return 0, None
 
-        triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        triggered_id = ctx.triggered_id
         if triggered_id == 'prev-location-card':
             new_index = (current_index - 1) % len(locations)
         else:
             new_index = (current_index + 1) % len(locations)
 
-        new_location = locations[new_index]
-        return new_index, new_location
+        return new_index, locations[new_index]
 
-    # 🔁 Change current date with prev/next buttons in Run Analysis
+    # 🔁 Switch date (prev/next) in Run Analysis
     @dash_app.callback(
         Output('date-plot-index', 'data'),
         Output('date-plot-selector', 'date'),
@@ -78,26 +73,20 @@ def register_shared_callbacks(dash_app, colors):
         if not dates:
             return 0, None
 
-        triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
-        if triggered_id == 'prev-date-plot':
-            new_index = (current_index - 1) % len(dates)
-            new_date = dates[new_index]
-        elif triggered_id == 'next-date-plot':
-            new_index = (current_index + 1) % len(dates)
-            new_date = dates[new_index]
-        elif triggered_id == 'date-plot-selector':
+        triggered_id = ctx.triggered_id
+        if triggered_id in ['prev-date-plot', 'next-date-plot']:
+            delta = -1 if triggered_id == 'prev-date-plot' else 1
+            new_index = (current_index + delta) % len(dates)
+            return new_index, dates[new_index]
+
+        if triggered_id == 'date-plot-selector':
             picked_date = pd.to_datetime(selected_date).date()
             if picked_date in dates:
-                new_index = dates.index(picked_date)
-                new_date = picked_date
-            else:
-                return current_index, selected_date
-        else:
-            return current_index, dash.no_update
+                return dates.index(picked_date), picked_date
 
-        return new_index, new_date
+        return current_index, dash.no_update
 
-    # 🔁 Change current run with prev/next buttons in Run Analysis
+    # 🔁 Switch run (prev/next) in Run Analysis
     @dash_app.callback(
         Output('run-plot-index', 'data'),
         Output('run-plot-selector', 'value'),
@@ -120,18 +109,16 @@ def register_shared_callbacks(dash_app, colors):
         if not run_list:
             return 0, None
 
-        triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
-        if triggered_id == 'prev-run-plot':
-            new_index = (current_index - 1) % len(run_list)
-        elif triggered_id == 'next-run-plot':
-            new_index = (current_index + 1) % len(run_list)
+        triggered_id = ctx.triggered_id
+        if triggered_id in ['prev-run-plot', 'next-run-plot']:
+            delta = -1 if triggered_id == 'prev-run-plot' else 1
+            new_index = (current_index + delta) % len(run_list)
         else:
-            new_index = 0  # reset to first run on date change
+            new_index = 0  # On new date selection, default to first run
 
-        new_run = str(run_list[new_index])
-        return new_index, new_run
+        return new_index, str(run_list[new_index])
 
-    # 🔁 Change current location with prev/next buttons in Run Analysis
+    # 🔁 Switch location (prev/next) in Run Analysis
     @dash_app.callback(
         Output('location-plot-index', 'data'),
         Output('location-plot-selector', 'value'),
@@ -152,15 +139,14 @@ def register_shared_callbacks(dash_app, colors):
         if not locations:
             return 0, None
 
-        # If we have a current location, find its index
+        # If current location exists, sync current index
         if current_location in locations:
             current_index = locations.index(current_location)
 
-        triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        triggered_id = ctx.triggered_id
         if triggered_id == 'prev-location-plot':
             new_index = (current_index - 1) % len(locations)
         else:
             new_index = (current_index + 1) % len(locations)
 
-        new_location = locations[new_index]
-        return new_index, new_location
+        return new_index, locations[new_index]

@@ -46,8 +46,7 @@ def collection():
                 stop_event.clear()
                 # loc = [['ECC', 67.12, -43.45], ['GEC', 70.21, -40.31], ['SDB', 65.78, -42.5],
                 #        ['FOODCOURT', 68.33, -41.25], ['LOUNGE', 69.0, -39.9]]
-                loc = [['ECC', 67.12, -43.45]]
-                collection_thread = Thread(target=start_collection, args=(loc,))
+                collection_thread = Thread(target=start_collection)
                 collection_thread.start()
                 status = True
                 message = "🚀 Data Collection Started"

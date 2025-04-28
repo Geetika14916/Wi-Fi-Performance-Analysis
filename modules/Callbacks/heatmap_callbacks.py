@@ -1,20 +1,15 @@
 # modules/callbacks/heatmap_callbacks.py
 import dash
-from dash import Input, Output,State
-import plotly.express as px
-from modules.data_loader import load_wifi_data, prepare_heatmap_data
-from modules.config import PARAMETERS
-import pandas as pd
+from dash import Input, Output, State
 import plotly.graph_objects as go
+from modules.data_loader import load_wifi_data, prepare_heatmap_data
+from modules.config import PARAMETERS, LOCATION_PIXEL_COORDS
+import pandas as pd
 from modules.utils import get_pixel_coords
 
+
 def register_heatmap_callbacks(dash_app, colors):
-
-    # ════════════════════════════════════════════════════════════════
-    # SECTION: HEATMAP TAB CALLBACKS
-    # Handles parameter/date/run switching and heatmap generation
-    # ════════════════════════════════════════════════════════════════
-
+    
     # 🔁 Switch parameter using ◀️ ▶️ buttons
     @dash_app.callback(
         Output('heatmap-param-index', 'data'),
@@ -35,7 +30,7 @@ def register_heatmap_callbacks(dash_app, colors):
         new_param = PARAMETERS[new_index]
         return new_index, new_param.replace("_", " ").title(), new_param
 
-
+    
     # 📆 Switch date with arrows or calendar
     @dash_app.callback(
         Output('heatmap-date', 'value'),
@@ -75,7 +70,7 @@ def register_heatmap_callbacks(dash_app, colors):
 
         return new_date, new_index, new_date
 
-
+    
     # 🔁 Switch run using ◀️ ▶️ buttons or reset on date change
     @dash_app.callback(
         Output('heatmap-run-index', 'data'),
@@ -124,31 +119,40 @@ def register_heatmap_callbacks(dash_app, colors):
         if df.empty or not selected_date or not selected_run:
             return go.Figure()
 
-        # Filter data
+        # Filter data by selected date and run
         df['date'] = pd.to_datetime(df['timestamp']).dt.date
         df = df[(df['date'] == pd.to_datetime(selected_date).date()) & 
                 (df['run_no'] == int(selected_run))]
 
-        # Aggregate per location
+        # Aggregate data by location and selected parameter
         agg_df = df.groupby('location').agg({
-            'download_speed': 'mean',
-            'upload_speed': 'mean',
-            'latency_ms': 'mean',
-            'jitter_ms': 'mean',
-            'packet_loss': 'mean',
-            'rssi': 'mean',
+            **{param: 'mean' for param in PARAMETERS},  # Use the PARAMETERS list dynamically
             'timestamp': 'count'
         }).reset_index().rename(columns={'timestamp': 'count'})
+
+        if param not in agg_df.columns:
+            return go.Figure()  # Return an empty figure if the selected param doesn't exist
 
         # Map locations to pixel coordinates
         agg_df['x'], agg_df['y'] = zip(*agg_df['location'].map(get_pixel_coords))
         agg_df = agg_df.dropna(subset=[param, 'x', 'y'])
-        agg_df = agg_df[(agg_df['x'] != 0) | (agg_df['y'] != 0)]  # filter unmapped (0,0)
+        agg_df = agg_df[(agg_df['x'] != 0) | (agg_df['y'] != 0)]  # Remove unmapped (0,0)
 
         # Normalize marker size
         max_count = agg_df['count'].max()
-        agg_df['size'] = agg_df['count'] / max_count * 40 + 10  # size scale: 10–50 px
+        agg_df['size'] = agg_df['count'] / max_count * 40 + 10  # Marker size scale
 
+        # 🛠️ Prepare hover template dynamically based on available params
+        available_params = [p for p in PARAMETERS if p in agg_df.columns]
+        customdata = agg_df[['location'] + available_params + ['count']]
+
+        hover_lines = ["<b>%{customdata[0]}</b><br>"]  # Location
+        for idx, p in enumerate(available_params, start=1):
+            hover_lines.append(f"{p.replace('_', ' ').title()}: "+"%{customdata["+str(idx)+"]:.2f}<br>")
+        hover_lines.append("Data Points: %{customdata["+str(len(available_params)+1)+"]}<extra></extra>")
+        hovertemplate = ''.join(hover_lines)
+
+        # Create the scatter plot
         fig = go.Figure(data=go.Scatter(
             x=agg_df['x'],
             y=agg_df['y'],
@@ -167,27 +171,35 @@ def register_heatmap_callbacks(dash_app, colors):
                     tickformat="0.1f"
                 )
             ),
-            customdata=agg_df[['location'] + PARAMETERS + ['count']],
-            hovertemplate=(
-                "<b>%{customdata[0]}</b><br>" +
-                "Download: %{customdata[1]:.2f} Mbps<br>" +
-                "Upload: %{customdata[2]:.2f} Mbps<br>" +
-                "Latency: %{customdata[3]:.2f} ms<br>" +
-                "Jitter: %{customdata[4]:.2f} ms<br>" +
-                "Packet Loss: %{customdata[5]}<br>" +
-                "RSSI: %{customdata[6]}<br>" +
-                "Data Points: %{customdata[7]}<extra></extra>"
-            )
+            customdata=customdata,
+            hovertemplate=hovertemplate
         ))
 
         fig.update_layout(
             title=f"📍{param.replace('_', ' ').title()} Across Locations",
-            xaxis=dict(title="X", showgrid=False, zeroline=False, range=[0, 550]),
-            yaxis=dict(title="Y", showgrid=False, zeroline=False, range=[0, 350]),
+            xaxis=dict(
+                 title="X",
+                 showgrid=False,
+                 zeroline=False,
+                 range=[0, 1250],
+                 constrain='domain',  # Lock the x-range width
+                 tickmode='linear',
+                 tick0=0,
+                 dtick=50,  # Control spacing between ticks
+             ),
+             yaxis=dict(
+                 title="Y",
+                 showgrid=False,
+                 zeroline=False,
+                 range=[0, 350],
+                 scaleanchor="x",     # Equal spacing per unit
+                 tickmode='linear',
+                 tick0=0,
+                 dtick=50,
+             ),
             plot_bgcolor='white',
             height=400,
             margin=dict(l=60, r=100, t=50, b=50)
         )
 
         return fig
-

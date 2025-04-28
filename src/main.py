@@ -6,6 +6,8 @@ import subprocess
 import re
 from threading import Event
 from Database.database import get_db_connection
+from modules.config import LOCATION_PIXEL_COORDS, PARAMETERS
+
 
 stop_event = Event()
 
@@ -187,11 +189,14 @@ def get_next_run_no():
 
 
 
-def start_collection(location_list):
+def start_collection(location_list=None):
+    if location_list is None:
+        location_list = [(location, coords[0], coords[1]) for location, coords in LOCATION_PIXEL_COORDS.items()]
     run_no = get_next_run_no()
     print(f"Starting data collection for Run {run_no} across {len(location_list)} locations...")
     collect_and_store_data(location_list, run_no)
     return True
+ 
 
 def stop_collection():
     stop_event.set()
