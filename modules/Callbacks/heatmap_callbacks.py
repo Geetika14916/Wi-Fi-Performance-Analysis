@@ -160,7 +160,11 @@ def register_heatmap_callbacks(dash_app, colors):
             marker=dict(
                 size=agg_df['size'],
                 color=agg_df[param],
-                colorscale='Viridis',
+                colorscale=[  # Replace this line
+                    [0.0, "red"],
+                    [0.5, "yellow"],
+                    [1.0, "green"]
+                ],
                 showscale=True,
                 line=dict(width=1, color='black'),
                 colorbar=dict(
@@ -202,4 +206,6 @@ def register_heatmap_callbacks(dash_app, colors):
             margin=dict(l=60, r=100, t=50, b=50)
         )
 
+
+        
         return fig
